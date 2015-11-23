@@ -1,36 +1,67 @@
 #include <fcntl.h>
+#include <linux/fb.h>
+#include <linux/kd.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-#include <linux/fb.h>
-#include <time.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include <time.h>
+#include <unistd.h>
+
+void exit_handler()
+{
+    int ttyfd = open("/dev/tty", O_RDWR);
+    ioctl(ttyfd, KDSETMODE, KD_TEXT);
+    exit(EXIT_SUCCESS);
+}
 
 int main(int argc, char* argv[])
 {
-    int fbfd = 0;
+    int ttyfd, fbfd;
     struct fb_var_screeninfo vinfo;
     struct fb_fix_screeninfo finfo;
     long int screen_size = 0;
     unsigned char* fbp = 0;
     long int location = 0;
 
+    ttyfd = open("/dev/tty", O_RDWR);
+    if(ttyfd == -1)
+    {
+        perror("Error: cannot open tty device");
+        exit(EXIT_FAILURE);
+    }
+
     fbfd = open("/dev/fb0", O_RDWR);
-    if (fbfd == -1) {
+
+    if(fbfd == -1)
+    {
         perror("Error: cannot open framebuffer device");
         exit(EXIT_FAILURE);
     }
 
-    if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo) == -1) {
+    if(ioctl(ttyfd, KDSETMODE, KD_GRAPHICS) == -1)
+    {
+        perror("Error: cannot set tty to graphics mode");
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        signal(SIGINT, exit_handler);
+        signal(SIGTERM, exit_handler);
+    }
+    
+    if(ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo) == -1)
+    {
         perror("Error reading fixed information");
         exit(EXIT_FAILURE);
     }
 
-    if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo) == -1) {
+    if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo) == -1)
+    {
         perror("Error reading variable information");
         exit(EXIT_FAILURE);
     }
@@ -41,6 +72,7 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
+//    fprintf(stderr, "%d %d %d\n", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel);
 
     screen_size = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
 
@@ -142,7 +174,10 @@ int main(int argc, char* argv[])
             ystart += pixel_size;
         }
     }
+
     munmap(fbp, screen_size);
     close(fbfd);
+    close(ttyfd);
+
     return EXIT_SUCCESS;
 }
