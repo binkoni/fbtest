@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <getopt.h>
 #include <linux/fb.h>
 #include <linux/kd.h>
 #include <signal.h>
@@ -78,7 +79,7 @@ int main(int argc, char* argv[])
 
     fbp = (unsigned char*)mmap(0, screen_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                         fbfd, 0);
-    if ((uint64_t)fbp == -1)
+    if ((int64_t)fbp == -1)
     {
         perror("Error: failed to map framebuffer device to memory");
         exit(EXIT_FAILURE);
