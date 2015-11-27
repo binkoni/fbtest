@@ -71,9 +71,9 @@ int main(int argc, char* argv[])
 
     screen_size = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
 
-    fbp = (uint8_t*)mmap(0, screen_size, PROT_READ | PROT_WRITE, MAP_SHARED,
+    fbp = mmap(0, screen_size, PROT_READ | PROT_WRITE, MAP_SHARED,
                         fbfd, 0);
-    if ((int)fbp == -1)
+    if (fbp == (uint8_t*)-1)
     {
         perror("Error: failed to map framebuffer device to memory");
         exit(EXIT_FAILURE);
@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
                     *(fbp + location) = (uint8_t)blue;
                     *(fbp + location + 1) = (uint8_t)green;
                     *(fbp + location + 2) = (uint8_t)red;
-                    *(fbp + location + 3) = (uint8_t)0;
+                    *(fbp + location + 3) = (uint8_t)255;
                     break;
                 }
             }
