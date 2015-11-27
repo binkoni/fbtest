@@ -53,6 +53,7 @@ int main(int argc, char* argv[])
     {
         signal(SIGINT, exit_handler);
         signal(SIGTERM, exit_handler);
+        signal(SIGQUIT, exit_handler);
     }
 
     if(ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo) == -1)
@@ -80,7 +81,7 @@ int main(int argc, char* argv[])
     }
 
     srand(time(NULL));
-    uint32_t red, green, blue;
+    uint8_t red, green, blue;
     int xstart, ystart;
     int pixel_size = 10;
     bool red_enabled = false, green_enabled = false, blue_enabled = false;
