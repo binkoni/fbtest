@@ -17,11 +17,71 @@ void exit_handler()
 {
     int ttyfd = open("/dev/tty", O_RDWR);
     ioctl(ttyfd, KDSETMODE, KD_TEXT);
+    close(ttyfd);
     exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char* argv[])
 {
+    srand(time(NULL));
+    uint8_t red, green, blue;
+    int xstart, ystart;
+    int pixel_size = 10;
+    bool red_enabled = false, green_enabled = false, blue_enabled = false;
+    struct timespec interval = {.tv_sec = 0, .tv_nsec = 10};
+    signed char c;
+    bool color_options_exist = false;
+    char* fbn = "/dev/fb0";
+
+    while((c = getopt(argc, argv, "f:s:t:rgbh")) != -1)
+    {
+        switch(c)
+        {
+        case 'f':
+            fbn = optarg;
+            break;
+        case 's':
+            pixel_size = atoi(optarg);
+            if(pixel_size == 0)
+            {
+                perror("Error: Invalid pixel_size\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 't':
+            interval.tv_nsec = atol(optarg);
+            break;
+        case 'r':
+            color_options_exist = true;
+            red_enabled = true;
+            break;
+        case 'g':
+            color_options_exist = true;
+            green_enabled = true;
+            break;
+        case 'b':
+            color_options_exist = true;
+            blue_enabled = true;
+            break;
+        case 'h':
+            printf("Usage: fbtest [OPTION]...\n");
+            printf("Framebuffer test.\n");
+            printf("Options:\n");
+            printf("  -f                       Set fbdev path other than /dev/fb0\n");
+            printf("  -s                       Size of an pixel.\n");
+            printf("  -t                       Time of sleep() in nsecs.\n");
+            printf("  -r                       Turn on red color.\n");
+            printf("  -g                       Turn on green color.\n");
+            printf("  -b                       Turn on blue color.\n");
+            printf("  -h                       Print this help message.\n");
+
+            exit(EXIT_SUCCESS);
+        case '?':
+            fprintf(stderr, "Unknown option -%c\n", optopt);
+            break;
+        }
+    }
+
     int ttyfd, fbfd;
     struct fb_var_screeninfo vinfo;
     struct fb_fix_screeninfo finfo;
@@ -36,8 +96,7 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    fbfd = open("/dev/fb0", O_RDWR);
-
+    fbfd = open(fbn, O_RDWR);
     if(fbfd == -1)
     {
         perror("Error: cannot open framebuffer device");
@@ -72,65 +131,11 @@ int main(int argc, char* argv[])
 
     screen_size = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
 
-    fbp = mmap(0, screen_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                        fbfd, 0);
+    fbp = mmap(0, screen_size, PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0);
     if (fbp == (uint8_t*)-1)
     {
         perror("Error: failed to map framebuffer device to memory");
         exit(EXIT_FAILURE);
-    }
-
-    srand(time(NULL));
-    uint8_t red, green, blue;
-    int xstart, ystart;
-    int pixel_size = 10;
-    bool red_enabled = false, green_enabled = false, blue_enabled = false;
-    struct timespec interval = {.tv_sec = 0, .tv_nsec = 10};
-    signed char c;
-    bool color_options_exist = false;
-    while((c = getopt(argc, argv, "s:t:rgbh")) != -1)
-    {
-        switch(c)
-        {
-        case 's':
-            pixel_size = atoi(optarg);
-            if(pixel_size == 0)
-            {
-                perror("Error: Invalid pixel_size\n");
-                exit(EXIT_FAILURE);
-            }
-            break;
-        case 't':
-            interval.tv_nsec = atol(optarg);
-            break;
-        case 'r':
-            color_options_exist = true;
-            red_enabled = true;
-            break;
-        case 'g':
-            color_options_exist = true;
-            green_enabled = true;
-            break;
-        case 'b':
-            color_options_exist = true;
-            blue_enabled = true;
-            break;
-        case 'h':
-            printf("Usage: fbtest [OPTION]...\n");
-            printf("Framebuffer test.\n");
-            printf("Options:\n");
-            printf("  -s                       Size of an pixel.\n");
-            printf("  -t                       Time of sleep() in nsecs.\n");
-            printf("  -r                       Turn on red color.\n");
-            printf("  -g                       Turn on green color.\n");
-            printf("  -b                       Turn on blue color.\n");
-            printf("  -h                       Print this help message.\n");
-
-            exit(EXIT_SUCCESS);
-        case '?':
-            fprintf(stderr, "Unknown option -%c\n", optopt);
-            break;
-        }
     }
 
     if(!color_options_exist)
@@ -138,7 +143,7 @@ int main(int argc, char* argv[])
         red_enabled = blue_enabled = green_enabled = true;
     }
 
-    do
+    while(true)
     {
         if(ystart >= vinfo.yres)
         {
@@ -200,7 +205,7 @@ int main(int argc, char* argv[])
             xstart = 0;
             ystart += pixel_size;
         }
-    } while(true);
+    }
 
     munmap(fbp, screen_size);
     close(fbfd);
