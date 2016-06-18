@@ -12,6 +12,7 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #include <unistd.h>
+#include "print_usage.h"
 
 void exit_handler()
 {
@@ -64,17 +65,7 @@ int main(int argc, char* argv[])
             blue_enabled = true;
             break;
         case 'h':
-            printf("Usage: fbtest [OPTION]...\n");
-            printf("Framebuffer test.\n");
-            printf("Options:\n");
-            printf("  -f                       Set fbdev path other than /dev/fb0\n");
-            printf("  -s                       Size of an pixel.\n");
-            printf("  -t                       Time of sleep() in nsecs.\n");
-            printf("  -r                       Turn on red color.\n");
-            printf("  -g                       Turn on green color.\n");
-            printf("  -b                       Turn on blue color.\n");
-            printf("  -h                       Print this help message.\n");
-
+	    print_usage();
             exit(EXIT_SUCCESS);
         case '?':
             fprintf(stderr, "Unknown option -%c\n", optopt);
